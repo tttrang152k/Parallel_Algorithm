@@ -107,21 +107,8 @@ def main():
     size = comm.Get_size()
 
     # Define the NetworkX graph (replace with your graph)
-    G = nx.read_edgelist("output.txt", nodetype=int, data=(("weight", float),))
-    if rank == 0:
-        G = nx.DiGraph()
-        G.add_weighted_edges_from([
-            (0, 1, 3),
-            (0, 3, 7),
-            (1, 2, 2),
-            (2, 0, 5),
-            (2, 3, 1),
-            (3, 0, 2)
-        ])
-        # Convert the graph to an adjacency matrix
-        full_graph = nx.to_numpy_array(G, weight="weight", nonedge=INF)
-    else:
-        full_graph = None
+    G = extract_component(nx.read_edgelist("output.txt", nodetype=int, data=(("weight", float),)))
+    full_graph = nx.to_numpy_array(G, weight="weight", nonedge=INF)
 
     n = comm.bcast(full_graph.shape[0] if rank == 0 else None, root=0)
     full_graph = comm.bcast(full_graph if rank == 0 else None, root=0)
@@ -148,14 +135,34 @@ def main():
 
         closeness_centrality, betweenness_centrality = calculate_centralities(final_result)
 
-        print("\nShortest Paths Matrix:")
-        print(final_result)
+        # Write results to file
+        with open("program_output.txt", "w") as f:
+            f.write("Closeness Centrality:\n")
+            for idx, val in enumerate(closeness_centrality):
+                f.write(f"Node {idx}: {val:.4f}\n")
 
-        print("\nCloseness Centrality:")
-        print(closeness_centrality)
+            f.write("\nBetweenness Centrality:\n")
+            for idx, val in enumerate(betweenness_centrality):
+                f.write(f"Node {idx}: {val:.4f}\n")
 
-        print("\nBetweenness Centrality:")
-        print(betweenness_centrality)
+        # Print top 5 nodes with highest centrality values
+        top_closeness = np.argsort(-closeness_centrality)[:5]
+        top_betweenness = np.argsort(-betweenness_centrality)[:5]
+
+        print("\nTop 5 Nodes by Closeness Centrality:")
+        for idx in top_closeness:
+            print(f"Node {idx}: {closeness_centrality[idx]:.4f}")
+
+        print("\nTop 5 Nodes by Betweenness Centrality:")
+        for idx in top_betweenness:
+            print(f"Node {idx}: {betweenness_centrality[idx]:.4f}")
+
+        # Print average centrality values
+        avg_closeness = np.mean(closeness_centrality)
+        avg_betweenness = np.mean(betweenness_centrality)
+
+        print(f"\nAverage Closeness Centrality: {avg_closeness:.4f}")
+        print(f"Average Betweenness Centrality: {avg_betweenness:.4f}")
 
 
 if __name__ == "__main__":
