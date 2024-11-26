@@ -1,11 +1,9 @@
 import numpy as np
 import random
-import time
 from heapq import heappop, heappush
-from collections import defaultdict
 
 # Utility: Read and subsample graph
-def read_and_sample_graph(file_path, sample_ratio=0.2):
+def read_and_sample_graph(file_path, sample_ratio):
     edges = np.loadtxt(file_path, dtype=int)
     nodes = np.unique(edges)
     
@@ -43,20 +41,18 @@ def dijkstra(adj_matrix, source):
 
 # Closeness Centrality using Dijkstra's algorithm
 def closeness_centrality_dijkstra(adj_matrix):
-    print("Calculating closeness centrality using Dijkstra...")
     n = len(adj_matrix)
     centrality = {}
     for i in range(n):
         distances = dijkstra(adj_matrix, i)
         total_dist = np.sum([d for d in distances if d < float('inf')])  # Ignore unreachable nodes
         centrality[i] = (n - 1) / total_dist if total_dist > 0 else 0
-    print("Closeness centrality calculation completed.")
     return centrality
 
 # Betweenness Centrality
 def betweenness_centrality(A):
     n = len(A)
-    centrality = defaultdict(float)
+    centrality = {}
 
     for s in range(n):
         stack, paths, sigma = [], {}, [0] * n
@@ -77,7 +73,9 @@ def betweenness_centrality(A):
                     dist[w] = dist[v] + 1
                 if dist[w] == dist[v] + 1:
                     sigma[w] += sigma[v]
-                    paths.setdefault(w, []).append(v)
+                    if w not in paths:
+                        paths[w] = []
+                    paths[w].append(v)
 
         delta = [0] * n
         while stack:
@@ -85,27 +83,26 @@ def betweenness_centrality(A):
             for v in paths.get(w, []):
                 delta[v] += (sigma[v] / sigma[w]) * (1 + delta[w])
             if w != s:
+                if w not in centrality:
+                    centrality[w] = 0
                 centrality[w] += delta[w]
 
     return centrality
 
+sample_ratio = 0.15
 
-print("Starting program...")
-print("Reading and sampling graph...")
-adj_matrix, sampled_nodes = read_and_sample_graph("facebook_combined.txt", sample_ratio=0.2)
+# Reading and sampling graph
+print(f"Reading and sampling graph with ratio {sample_ratio}...")
+adj_matrix, sampled_nodes = read_and_sample_graph("facebook_combined.txt", sample_ratio)
 print(f"Sampled {sampled_nodes} nodes.")
 
-# Measure execution time for closeness centrality
-print("Running Dijkstra-based algorithm for closeness centrality...")
-start_time = time.time()
+# Calculate closeness centrality
+print("Calculating closeness centrality...")
 closeness = closeness_centrality_dijkstra(adj_matrix)
-total_time = time.time() - start_time
 
-# Measure execution time for betweenness centrality
-print("Running betweenness centrality calculation...")
-start_time_bc = time.time()
+# Calculate betweenness centrality
+print("Calculating betweenness centrality...")
 betweenness = betweenness_centrality(adj_matrix)
-total_time_bc = time.time() - start_time_bc
 
 # Save results to output.txt
 print("Saving results to output.txt...")
@@ -122,5 +119,3 @@ print("Top 5 Closeness Centrality:", top_5_closeness)
 print("Top 5 Betweenness Centrality:", top_5_betweenness)
 print("Average Closeness Centrality:", np.mean(list(closeness.values())))
 print("Average Betweenness Centrality:", np.mean(list(betweenness.values())))
-print("Closeness Execution Time:", total_time)
-print("Betweenness Execution Time:", total_time_bc)
