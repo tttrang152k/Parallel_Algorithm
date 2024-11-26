@@ -2,23 +2,36 @@ import sys
 from mpi4py import MPI
 import numpy as np
 from heapq import heappop, heappush
+import networkx as nx
 
-# Read and sample graph
+# Read and sample graph (modified to use largest component and degree-based sampling)
 def read_and_sample_graph(file_path, sample_ratio):
     edges = np.loadtxt(file_path, dtype=int)
-    nodes = np.unique(edges)
+    G = nx.Graph()
+    G.add_edges_from(edges)
+
+    # Extract the largest component
+    G_largest_comp = extract_component(G)
+
+    # Extract the top x% (in this case sample_ratio% of nodes) of the largest component by degree
+    sorted_nodes = sorted(G_largest_comp.degree, key=lambda x: x[1], reverse=True)
+    top_percentage_count = int(len(sorted_nodes) * sample_ratio)
+    top_percentage_nodes = [node for node, degree in sorted_nodes[:top_percentage_count]]
+
+    # Create the subgraph with the top degree nodes
+    G_10_subgraph_largest_comp = G_largest_comp.subgraph(top_percentage_nodes)
+
+    # Convert to adjacency matrix
+    adj_matrix = nx.to_numpy_array(G_10_subgraph_largest_comp)
     
-    sampled_nodes = set(np.random.choice(list(nodes), int(sample_ratio * len(nodes)), replace=False))
-    sampled_edges = [edge for edge in edges if edge[0] in sampled_nodes and edge[1] in sampled_nodes]
-    
-    # Create adjacency matrix
-    n = max(max(edge) for edge in sampled_edges) + 1
-    adj_matrix = np.full((n, n), float('inf'))
-    np.fill_diagonal(adj_matrix, 0)
-    for edge in sampled_edges:
-        adj_matrix[edge[0], edge[1]] = 1
-        adj_matrix[edge[1], edge[0]] = 1
-    return adj_matrix, len(sampled_nodes)
+    return adj_matrix, len(top_percentage_nodes)
+
+# Function to extract the largest component
+def extract_component(G): 
+    connected_components = list(nx.connected_components(G))
+    largest_comp = max(connected_components, key=len)
+    G_largest_comp = G.subgraph(largest_comp)
+    return G_largest_comp
 
 # Dijkstra's algorithm for single-source shortest paths
 def dijkstra(adj_matrix, source):
@@ -48,7 +61,7 @@ def main():
 
     # File and sampling settings
     file_path = "facebook_combined.txt"
-    sample_ratio = 0.15  # Sampling ratio
+    sample_ratio = 0.3  # Sampling ratio
 
     if rank == 0:
         adj_matrix, sampled_nodes = read_and_sample_graph(file_path, sample_ratio)
