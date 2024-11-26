@@ -87,7 +87,7 @@ def extract_component(G):
 
     #Extract 10% from largest component 
     sorted_nodes = sorted(G_largest_comp.degree, key=lambda x: x[1], reverse=True)
-    top_10_percent_count = int(len(sorted_nodes) * 0.015)
+    top_10_percent_count = int(len(sorted_nodes) * 0.005)
     top_10_percent_nodes = [node for node, degree in sorted_nodes[:top_10_percent_count]]
     G_10_subgraph_largest_comp = G_largest_comp.subgraph(top_10_percent_nodes)
   
@@ -107,7 +107,11 @@ def main():
     size = comm.Get_size()
 
     # Define the NetworkX graph (replace with your graph)
-    G = extract_component(nx.read_edgelist("output.txt", nodetype=int, data=(("weight", float),)))
+    G = nx.read_edgelist("output.txt", nodetype=int, data=(("weight", float),))
+    G = extract_component(G)
+    N_ori = G.number_of_nodes()
+    K_ori = G.number_of_edges()
+    print("EXTRACTED Graph - Nodes: ", N_ori, " Edges: ", K_ori)
     full_graph = nx.to_numpy_array(G, weight="weight", nonedge=INF)
 
     n = comm.bcast(full_graph.shape[0] if rank == 0 else None, root=0)
