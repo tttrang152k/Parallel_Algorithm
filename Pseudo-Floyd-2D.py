@@ -2,6 +2,8 @@ from mpi4py import MPI
 import numpy as np
 import networkx as nx
 import time 
+import networkx as nx
+
 
 INF = np.inf
 
@@ -68,6 +70,8 @@ def calculate_centralities(shortest_paths):
         total_distance = np.sum(shortest_paths[u][reachable])
         if total_distance > 0 and num_reachable > 0:
             closeness_centrality[u] = num_reachable / total_distance
+            # closeness_centrality[u] = (num_reachable - 1) / (total_distance * (n - 1))
+
 
     # Betweenness Centrality 
     for u in range(n):
@@ -84,6 +88,70 @@ def calculate_centralities(shortest_paths):
 
     return closeness_centrality, betweenness_centrality
 
+def calculate_centralities_with_networkx(G):
+    """
+    Calculate closeness and betweenness centrality using NetworkX's built-in functions.
+    """
+    
+    # Start measuring the runtime for Floyd-Warshall
+    fw_start_time = time.time()
+
+    # Compute the all-pairs shortest paths using Floyd-Warshall
+    shortest_paths = dict(nx.floyd_warshall(G, weight="weight"))
+
+    fw_end_time = time.time()
+    fw_runtime = fw_end_time - fw_start_time
+
+
+    # nx.set_edge_attributes(G, shortest_paths, "floyd")
+    
+    # Start measuring the runtime
+    start_time = time.time()
+
+    # Calculate closeness centrality
+    closeness_centrality = nx.closeness_centrality(G, distance="weight")
+
+    # Calculate betweenness centrality
+    betweenness_centrality = nx.betweenness_centrality(G, normalized=False, weight="weight")
+
+    # Stop measuring the runtime
+    end_time = time.time()
+    runtime = end_time - start_time
+
+    # Print runtime statistics
+    print("\nNetworkX Centrality Calculation Statistics:")
+    print(f"Total Calculation Time: {runtime:.4f} seconds")
+
+    # Write results to file
+    with open("networkx_output.txt", "w") as f:
+        f.write("Closeness Centrality:\n")
+        for node, value in closeness_centrality.items():
+            f.write(f"Node {node}: {value:.4f}\n")
+
+        f.write("\nBetweenness Centrality:\n")
+        for node, value in betweenness_centrality.items():
+            f.write(f"Node {node}: {value:.4f}\n")
+
+    # Print top 5 nodes for each centrality
+    top_closeness = sorted(closeness_centrality.items(), key=lambda x: x[1], reverse=True)[:5]
+    top_betweenness = sorted(betweenness_centrality.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    print("\nTop 5 Nodes by Closeness Centrality:")
+    for node, value in top_closeness:
+        print(f"Node {node}: {value:.4f}")
+
+    print("\nTop 5 Nodes by Betweenness Centrality:")
+    for node, value in top_betweenness:
+        print(f"Node {node}: {value:.4f}")
+
+    # Print average centrality values
+    avg_closeness = sum(closeness_centrality.values()) / len(closeness_centrality)
+    avg_betweenness = sum(betweenness_centrality.values()) / len(betweenness_centrality)
+
+    print(f"\nAverage Closeness Centrality: {avg_closeness:.4f}")
+    print(f"Average Betweenness Centrality: {avg_betweenness:.4f}")
+
+
 def extract_component(G): 
     #Extract largest component 
     connected_components = list(nx.connected_components(G))
@@ -92,15 +160,10 @@ def extract_component(G):
 
     #Extract 10% from largest component 
     sorted_nodes = sorted(G_largest_comp.degree, key=lambda x: x[1], reverse=True)
-    top_10_percent_count = int(len(sorted_nodes) * 0.005)
+    top_10_percent_count = int(len(sorted_nodes) * 0.05)
     top_10_percent_nodes = [node for node, degree in sorted_nodes[:top_10_percent_count]]
     G_10_subgraph_largest_comp = G_largest_comp.subgraph(top_10_percent_nodes)
-  
 
-    # #Extract largest component from 10%
-    # connected_components = list(nx.connected_components(G_10_subgraph_largest_comp))
-    # largest_comp_10 = max(connected_components, key=len)
-    # G_largest_comp_10 = G_10_subgraph_largest_comp.subgraph(largest_comp_10)
 
     return G_10_subgraph_largest_comp 
 
@@ -117,7 +180,7 @@ def main():
 
     # Only the root process reads the graph and extracts the largest component
     if rank == 0:
-        G = nx.read_edgelist("output.txt", nodetype=int, data=(("weight", float),))
+        G = nx.read_edgelist("fb_output.txt", nodetype=int, data=(("weight", float),))
         G = extract_component(G)
         N_ori = G.number_of_nodes()
         K_ori = G.number_of_edges()
@@ -199,6 +262,7 @@ def main():
 
         print(f"\nAverage Closeness Centrality: {avg_closeness:.4f}")
         print(f"Average Betweenness Centrality: {avg_betweenness:.4f}")
+
 
 
 if __name__ == "__main__":
