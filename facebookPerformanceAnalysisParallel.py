@@ -3,6 +3,7 @@ from mpi4py import MPI
 import numpy as np
 from heapq import heappop, heappush
 import networkx as nx
+import time  # Import the time module
 
 # Read and sample graph (modified to use largest component and degree-based sampling)
 def read_and_sample_graph(file_path, sample_ratio):
@@ -63,6 +64,9 @@ def main():
     file_path = "facebook_combined.txt"
     sample_ratio = 0.3  # Sampling ratio
 
+    # Measure start time
+    start_time = time.time()
+
     if rank == 0:
         adj_matrix, sampled_nodes = read_and_sample_graph(file_path, sample_ratio)
         n = len(adj_matrix)
@@ -110,9 +114,14 @@ def main():
         # Output 
         top_5 = sorted(centrality.items(), key=lambda x: x[1], reverse=True)[:5]
         average_centrality = np.mean(list(centrality.values()))
+        
+        # Measure end time
+        end_time = time.time()
+        runtime = end_time - start_time
 
         print("Top 5 Closeness Centrality Nodes:", top_5)
         print("Average Closeness Centrality:", average_centrality)
+        print(f"Runtime: {runtime:.2f} seconds")
         sys.stdout.flush()
 
 if __name__ == "__main__":

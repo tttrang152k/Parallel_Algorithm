@@ -1,6 +1,7 @@
 import numpy as np
 import networkx as nx
 from heapq import heappop, heappush
+import time  # Import the time module for runtime measurement
 
 # Utility: Read and subsample graph
 def read_and_sample_graph(file_path, sample_ratio):
@@ -58,52 +59,48 @@ def closeness_centrality_dijkstra(adj_matrix):
         distances = dijkstra(adj_matrix, i)
         reachable_distances = [d for d in distances if d < float('inf') and d > 0]  # Exclude unreachable nodes and self-loops
         reachable_count = len(reachable_distances)
-        total_dist = np.sum(reachable_distances)
+        total_dist = sum(reachable_distances)
         if reachable_count > 0 and total_dist > 0:
-            centrality[i] = (reachable_count / (n - 1)) / (total_dist / reachable_count)  # Normalize for graph size
+            centrality[i] = float((reachable_count / (n - 1)) / (total_dist / reachable_count))  # Normalize for graph size
         else:
-            centrality[i] = 0  # Isolated or unreachable node
+            centrality[i] = 0.0  # Isolated or unreachable node
     return centrality
 
 # Betweenness Centrality
 def betweenness_centrality(A):
     n = len(A)
-    centrality = {v: 0 for v in range(n)}
+    centrality = {v: 0.0 for v in range(n)}
 
     for s in range(n):
-        # Initialize structures
         stack = []
-        paths = {v: [] for v in range(n)}  # Predecessor lists
-        sigma = [0] * n  # Shortest paths count
+        paths = {v: [] for v in range(n)}
+        sigma = [0] * n
         sigma[s] = 1
-        dist = [-1] * n  # Distances
+        dist = [-1] * n
         dist[s] = 0
         queue = [s]
 
-        # BFS to calculate shortest paths
         while queue:
             v = queue.pop(0)
             stack.append(v)
             for w in range(n):
-                if A[v][w] == 0:  # Skip non-existent edges
+                if A[v][w] == 0:
                     continue
-                if dist[w] < 0:  # Node not visited yet
+                if dist[w] < 0:
                     queue.append(w)
                     dist[w] = dist[v] + 1
-                if dist[w] == dist[v] + 1:  # Found a shortest path
+                if dist[w] == dist[v] + 1:
                     sigma[w] += sigma[v]
                     paths[w].append(v)
 
-        # Back-propagation of dependencies
         delta = [0.0] * n
         while stack:
             w = stack.pop()
             for v in paths[w]:
                 delta[v] += (sigma[v] / sigma[w]) * (1 + delta[w])
-            if w != s:  # Exclude the source node
+            if w != s:
                 centrality[w] += delta[w]
 
-    # Normalize for undirected graphs
     normalization_factor = 1 / ((n - 1) * (n - 2)) if n > 2 else 1
     for v in centrality:
         centrality[v] *= normalization_factor
@@ -112,24 +109,38 @@ def betweenness_centrality(A):
 
 # Main execution
 file_path = "facebook_combined.txt"
-sample_ratio = 0.2  # Sampling ratio
+sample_ratio = 0.25  # Sampling ratio
+
+# Measure start time for the overall process
+overall_start_time = time.time()
 
 # Read and sample graph
 print(f"Reading and sampling graph with sample ratio {sample_ratio}...")
+start_time = time.time()
 adj_matrix, sampled_nodes = read_and_sample_graph(file_path, sample_ratio)
-print(f"Sampled {sampled_nodes} nodes.")
+end_time = time.time()
+print(f"Sampled {sampled_nodes} nodes in {end_time - start_time:.2f} seconds.")
 
 # Calculate closeness centrality
 print("Calculating closeness centrality...")
+start_time = time.time()
 closeness = closeness_centrality_dijkstra(adj_matrix)
+end_time = time.time()
+print(f"Closeness centrality calculated in {end_time - start_time:.2f} seconds.")
 
 # Calculate betweenness centrality
 print("Calculating betweenness centrality...")
+start_time = time.time()
 betweenness = betweenness_centrality(adj_matrix)
+end_time = time.time()
+print(f"Betweenness centrality calculated in {end_time - start_time:.2f} seconds.")
+
+# Measure end time for the overall process
+overall_end_time = time.time()
 
 # Format and display results
-top_5_closeness = [(node, np.float64(score)) for node, score in sorted(closeness.items(), key=lambda x: x[1], reverse=True)[:5]]
-top_5_betweenness = [(node, np.float64(score)) for node, score in sorted(betweenness.items(), key=lambda x: x[1], reverse=True)[:5]]
+top_5_closeness = [(node, float(score)) for node, score in sorted(closeness.items(), key=lambda x: x[1], reverse=True)[:5]]
+top_5_betweenness = [(node, float(score)) for node, score in sorted(betweenness.items(), key=lambda x: x[1], reverse=True)[:5]]
 
 print("Top 5 Closeness Centrality Nodes:", top_5_closeness)
 print("Top 5 Betweenness Centrality Nodes:", top_5_betweenness)
@@ -145,7 +156,10 @@ with open("output.txt", "w") as f:
         f.write(f"{node}: {score}\n")
 
 # Calculate and display averages
-average_closeness = np.float64(np.mean(list(closeness.values())))
-average_betweenness = np.float64(np.mean(list(betweenness.values())))
+average_closeness = float(np.mean(list(closeness.values())))
+average_betweenness = float(np.mean(list(betweenness.values())))
 print("Average Closeness Centrality:", average_closeness)
 print("Average Betweenness Centrality:", average_betweenness)
+
+# Display total runtime
+print(f"Total Runtime: {overall_end_time - overall_start_time:.2f} seconds")
