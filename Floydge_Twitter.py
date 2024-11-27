@@ -44,44 +44,45 @@ def calculate_betweenness_centrality(graph, dist, nodes):
     """Calculate betweenness centrality using shortest paths."""
     n = len(nodes)
     betweenness = {node: 0 for node in nodes}
-    node_idx = {node: i for i, node in enumerate(nodes)}
 
     # For each pair of nodes, compute shortest paths
     for s in nodes:
         for t in nodes:
             if s != t:
-                paths = list(nx.all_shortest_paths(graph, source=s, target=t, weight="weight"))
+                # Check if there's a path between s and t
+                try:
+                    paths = list(nx.all_shortest_paths(graph, source=s, target=t, weight="weight"))
+                except nx.NetworkXNoPath:
+                    # No path exists, skip this pair
+                    continue
+                
                 num_paths = len(paths)
                 if num_paths > 0:
                     for path in paths:
                         # Exclude the start and end nodes
                         for node in path[1:-1]:
                             betweenness[node] += 1 / num_paths
-    
+
     # Normalize by dividing by 2 for undirected graphs
     for node in betweenness:
         betweenness[node] /= 2
-    
+
     return betweenness
 
 def extract_component(G): 
-    """Extracts the largest component and refines it to 5% top-degree nodes."""
+    #Extract largest component 
     connected_components = list(nx.connected_components(G))
     largest_comp = max(connected_components, key=len)
-    G_largest_comp = G.subgraph(largest_comp)
+    G_largest_comp= G.subgraph(largest_comp)
 
-    # Extract top 5% by degree
+    #Extract 10% from largest component 
     sorted_nodes = sorted(G_largest_comp.degree, key=lambda x: x[1], reverse=True)
-    top_5_percent_count = max(1, int(len(sorted_nodes) * 0.05))  # Ensure at least one node
-    top_5_percent_nodes = [node for node, _ in sorted_nodes[:top_5_percent_count]]
-    G_top_percent = G_largest_comp.subgraph(top_5_percent_nodes)
-  
-    # Extract the largest connected component again
-    connected_components = list(nx.connected_components(G_top_percent))
-    largest_comp_10 = max(connected_components, key=len)
-    G_refined = G_top_percent.subgraph(largest_comp_10)
+    top_10_percent_count = int(len(sorted_nodes) * 0.05)
+    top_10_percent_nodes = [node for node, degree in sorted_nodes[:top_10_percent_count]]
+    G_10_subgraph_largest_comp = G_largest_comp.subgraph(top_10_percent_nodes)
 
-    return G_refined
+
+    return G_10_subgraph_largest_comp 
 
 def write_output_to_file(file_name, closeness, betweenness, nodes):
     """Writes centrality measures to a file."""
@@ -94,7 +95,7 @@ def write_output_to_file(file_name, closeness, betweenness, nodes):
             f.write(f"Node {node}: {value:.4f}\n")
 
 # Load graph
-G = nx.read_edgelist("output.txt", nodetype=int, data=(("weight", float),))
+G = nx.read_edgelist("fb_output.txt", nodetype=int, data=(("weight", float),))
 
 # Start total execution time measurement
 total_start_time = time.time()
@@ -103,7 +104,7 @@ total_start_time = time.time()
 G1 = extract_component(G)
 N_ori = G1.number_of_nodes()
 K_ori = G1.number_of_edges()
-print("Original Graph - Nodes: ", N_ori, " Edges: ", K_ori)
+print("EXTRACTED Graph - Nodes: ", N_ori, " Edges: ", K_ori)
 
 
 # Floyd-Warshall computation
