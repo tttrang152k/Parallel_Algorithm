@@ -1,7 +1,7 @@
 import numpy as np
 import networkx as nx
 from heapq import heappop, heappush
-import time  # Import the time module for runtime measurement
+import time 
 
 # Utility: Read and subsample graph
 def read_and_sample_graph(file_path, sample_ratio):
@@ -63,7 +63,7 @@ def closeness_centrality_dijkstra(adj_matrix):
         if reachable_count > 0 and total_dist > 0:
             centrality[i] = float((reachable_count / (n - 1)) / (total_dist / reachable_count))  # Normalize for graph size
         else:
-            centrality[i] = 0.0  # Isolated or unreachable node
+            centrality[i] = 0.0  # For isolated or unreachable node
     return centrality
 
 # Betweenness Centrality
@@ -109,7 +109,7 @@ def betweenness_centrality(A):
 
 # Main execution
 file_path = "facebook_combined.txt"
-sample_ratio = 0.25  # Sampling ratio
+sample_ratio = 0.25 
 
 # Measure start time for the overall process
 overall_start_time = time.time()

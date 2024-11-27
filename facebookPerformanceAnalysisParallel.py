@@ -62,7 +62,7 @@ def main():
 
     # File and sampling settings
     file_path = "facebook_combined.txt"
-    sample_ratio = 0.3  # Sampling ratio
+    sample_ratio = 0.30
 
     # Measure start time
     start_time = time.time()
@@ -100,7 +100,7 @@ def main():
         if total_dist > 0 and reachable_nodes > 1:
             local_centrality[node] = (reachable_nodes - 1) / total_dist
         else:
-            local_centrality[node] = 0  # Node is isolated or disconnected
+            local_centrality[node] = 0  # For nodes isolated or disconnected
 
     # Gather results at root process
     all_centrality = comm.gather(local_centrality, root=0)
