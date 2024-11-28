@@ -69,8 +69,8 @@ def calculate_centralities(shortest_paths):
         num_reachable = np.sum(reachable) - 1  # Exclude the node itself
         total_distance = np.sum(shortest_paths[u][reachable])
         if total_distance > 0 and num_reachable > 0:
-            closeness_centrality[u] = num_reachable / total_distance
-            # closeness_centrality[u] = (num_reachable - 1) / (total_distance * (n - 1))
+            # closeness_centrality[u] = num_reachable / total_distance
+            closeness_centrality[u] = (num_reachable - 1) / (total_distance * (n - 1))
 
 
     # Betweenness Centrality 
@@ -160,7 +160,7 @@ def extract_component(G):
 
     #Extract 10% from largest component 
     sorted_nodes = sorted(G_largest_comp.degree, key=lambda x: x[1], reverse=True)
-    top_10_percent_count = int(len(sorted_nodes) * 0.05)
+    top_10_percent_count = int(len(sorted_nodes) * 0.015)
     top_10_percent_nodes = [node for node, degree in sorted_nodes[:top_10_percent_count]]
     G_10_subgraph_largest_comp = G_largest_comp.subgraph(top_10_percent_nodes)
 
